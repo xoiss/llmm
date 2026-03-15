@@ -75,10 +75,13 @@ If `/back` is issued when no exchanges remain, a warning is printed and nothing 
 
 ### `llmm export`
 
-    llmm export DIALOG_FILE [--output TEXT_FILE]
+    llmm export --prompt PROMPT_FILE DIALOG_FILE [--output TEXT_FILE]
 
-Converts a structured dialog file to plain text with role names substituted from the
-config. Writes to stdout if `--output` is omitted.
+Converts a structured dialog file to plain text with role names taken from the
+`[roles]` section of the prompt file. Writes to stdout if `--output` is omitted.
+
+The same prompt file that was passed to `llmm chat` when the dialog was recorded
+should be passed here, ensuring role names are consistent with the original scenario.
 
 ---
 
@@ -110,10 +113,6 @@ Format: INI (Python `configparser` — same syntax family as gitconfig).
     [dialog]
     directory   = ~/llmm-dialogs      ; default: ~/.llmm/dialogs
 
-    [roles]
-    user        = User                ; substituted when exporting a dialog file
-    assistant   = Assistant
-
 ### Precedence (highest to lowest)
 
 1. CLI flag (e.g. `--model`)
@@ -127,8 +126,8 @@ Format: INI (Python `configparser` — same syntax family as gitconfig).
 
 ### Prompt File (`.prompt`)
 
-TOML format. Both keys are optional. The `user` value is a **Jinja2 template**; the
-`system` value is a plain string (no template rendering).
+TOML format. The `user` value is a **Jinja2 template**; all other values are plain
+strings. All keys are optional.
 
     system = "You are a precise and concise assistant. Always respond in JSON."
 
@@ -143,6 +142,19 @@ TOML format. Both keys are optional. The `user` value is a **Jinja2 template**; 
     Document:
     {{ content }}
     """
+
+    [roles]
+    user      = "User"
+    assistant = "Assistant"
+
+The `[roles]` section defines the display names substituted for the `user` and
+`assistant` roles when a dialog is serialized — both by `llmm export` and by the
+`/history` command inside `llmm chat`. Keeping role names in the prompt file guarantees
+they are consistent with the persona or scenario the dialog was designed for (e.g.,
+`"Interviewer"` / `"Candidate"`, `"Doctor"` / `"Patient"`).
+
+If `[roles]` is absent, the literal strings `"user"` and `"assistant"` are used as
+fallback.
 
 The Jinja2 `{{ content }}` placeholder is the only variable injected during rendering.
 Literal `{` and `}` characters anywhere in the template (JSON schemas, code examples,
@@ -234,6 +246,7 @@ directive, not a conversational turn). Role names are substituted from `[roles]`
 - Reads `LLMM_API_BASE_URL` and `LLMM_API_TOKEN` from the environment.
 - Merges both sources, applying the precedence order.
 - Exposes a single `Config` dataclass consumed by every other module.
+- Does **not** contain role name settings; those are part of the prompt file.
 
 ### `llm_client.py`
 
@@ -246,7 +259,9 @@ directive, not a conversational turn). Role names are substituted from `[roles]`
 
 ### `prompt.py`
 
-- Parses a `.prompt` file into `(system: str | None, user_template: str | None)`.
+- Parses a `.prompt` file into `(system: str | None, user_template: str | None,
+  roles: tuple[str, str])` where `roles` is `(user_role, assistant_role)` from the
+  `[roles]` section, defaulting to `("user", "assistant")`.
 - `render(user_template, file_path) -> str | list[dict]` applies Jinja2 rendering
   with `content` as the sole template variable:
   - text file → plain string result of `Template(user_template).render(content=text)`.
@@ -295,6 +310,7 @@ directive, not a conversational turn). Role names are substituted from `[roles]`
 
 - `serialize(dialog: Dialog, user_role: str, assistant_role: str) -> str`
 - Formats each message as `<Role>:\n<text>\n\n`; skips the system prompt.
+- Role names are supplied by the caller from the parsed prompt file.
 - Used by both `llmm export` (writes to file/stdout) and `/history` (writes to console).
 
 ### `console.py`
