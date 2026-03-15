@@ -89,10 +89,11 @@ should be passed here, ensuring role names are consistent with the original scen
 
 ### Environment Variables
 
-| Variable                      | Purpose                                                       |
-|-------------------------------|---------------------------------------------------------------|
-| `LLMM_PROVIDER_API_BASE_URL`  | Base URL of the LLM provider (e.g. `http://localhost:8080`)  |
-| `LLMM_PROVIDER_API_TOKEN`     | OAuth Bearer token                                            |
+| Variable                        | Purpose                                                            |
+|---------------------------------|--------------------------------------------------------------------|
+| `LLMM_PROVIDER_API_BASE_URL`    | Base URL of the LLM provider (e.g. `http://localhost:8080`)       |
+| `LLMM_PROVIDER_API_AUTH_TOKEN`  | Token for authenticating requests to the LLM provider API         |
+| `LLMM_PROVIDER_API_AUTH_TYPE`   | Token type prefix in the HTTP `Authorization` header (e.g. `Bearer`, `OAuth`) |
 
 ### Config File
 
@@ -102,12 +103,13 @@ Format: TOML (Python `tomllib` stdlib).
 
 **Config file values take precedence over environment variables.**
 
-    [api]
+    [provider_api]
     base_url    = "https://api.example.com"
-    token       = "my-oauth-token"
-    model       = "gpt-4o"
+    auth_token  = "my-token"
+    auth_type   = "OAuth"
 
     [llm]
+    model       = "gpt-4o"
     temperature = 0.7
 
     [dialog]
@@ -253,7 +255,7 @@ directive, not a conversational turn). Role names are substituted from `[roles]`
 - Wraps `requests.post` to `<base_url>/chat/completions` (synchronous, non-streaming).
 - Builds the `messages` list from a sequence of `Message` objects.
 - Handles both plain-string and multimodal (content array) user messages.
-- Sets `Authorization: Bearer <token>`, `model`, and `temperature` from `Config`.
+- Sets `Authorization: <auth_type> <auth_token>`, `model`, and `temperature` from `Config`.
 - Raises typed exceptions for HTTP-level and API-level errors.
 - No retry logic in v1 — the caller decides on error handling.
 
