@@ -48,18 +48,17 @@ The tool targets any LLM provider that exposes an OpenAI-compatible
 
 ### `llmm run`
 
-    llmm run --prompt PROMPT_FILE INPUT_FILE  [--output OUTPUT_FILE] [--model MODEL]
-    llmm run --prompt PROMPT_FILE INPUT_DIR   --output-dir OUTPUT_DIR [--model MODEL]
+    llmm run --prompt PROMPT_FILE INPUT_FILE  [--output OUTPUT_FILE]
+    llmm run --prompt PROMPT_FILE INPUT_DIR   --output-dir OUTPUT_DIR
 
 - `INPUT_FILE` / `INPUT_DIR`: accepted extensions are `.txt`, `.md`, `.png`, `.jpg`.
 - `--output`: explicit output path (single-file mode only).
 - `--output-dir`: directory for results (directory mode); output file names inherit the
   input file stem with a `.md` extension.
-- `--model`: overrides the model name from the config file for this run.
 
 ### `llmm chat`
 
-    llmm chat --prompt PROMPT_FILE [--model MODEL]
+    llmm chat --prompt PROMPT_FILE
 
 Starts an interactive console session. User input and special commands are both entered
 at the same prompt and confirmed with **Enter**. Special commands begin with `/`:
@@ -108,17 +107,19 @@ File format: TOML.
     auth_token  = "my-token"
     auth_type   = "Bearer"
 
-    [llm]
-    model       = "gpt-4o"
-    temperature = 0.7
+    [llm_params]
+    dialect               = "OpenAI Chat Completions"  # selects the API endpoint and request/response format
+    model                 = "gpt-4o"
+    temperature           = 0.7     # optional; range depends on dialect and model (OpenAI: 0 to 2)
+    max_completion_tokens = 4096    # optional; maximum value depends on model
 
     [dialog]
     directory   = "~/llmm-dialogs"    # default: ~/.llmm/dialogs
 
 ### Precedence (highest to lowest)
 
-1. CLI flag (e.g. `--model`)
-2. Config file
+1. Prompt file (`[provider_api]`, `[llm_params]` sections)
+2. Config file (`~/.llmm/config.toml`)
 3. Environment variables
 4. Built-in defaults
 
@@ -128,9 +129,15 @@ File format: TOML.
 
 ### Prompt File (`.prompt`)
 
-TOML format. The `user` value is a **Jinja2 template**; all other values are plain
-strings. All keys are optional.
+TOML format. All keys are optional.
 
+    [provider_api]
+    # values defined here take precedence over the global config file
+
+    [llm_params]
+    # values defined here take precedence over the global config file
+
+    [prompt]
     system = "You are a precise and concise assistant. Always respond in JSON."
 
     user = """
@@ -149,6 +156,10 @@ strings. All keys are optional.
     user      = "User"
     assistant = "Assistant"
 
+The `[provider_api]` and `[llm_params]` sections mirror the corresponding sections of
+the global config file. Any keys present here take precedence over the global config,
+making the prompt file act as a local (per-scenario) config override.
+
 The `[roles]` section defines the display names substituted for the `user` and
 `assistant` roles when a dialog is serialized — both by `llmm export` and by the
 `/history` command inside `llmm chat`. Keeping role names in the prompt file guarantees
@@ -158,9 +169,10 @@ they are consistent with the persona or scenario the dialog was designed for (e.
 If `[roles]` is absent, the literal strings `"user"` and `"assistant"` are used as
 fallback.
 
-The Jinja2 `{{ content }}` placeholder is the only variable injected during rendering.
-Literal `{` and `}` characters anywhere in the template (JSON schemas, code examples,
-etc.) are passed through unchanged, since Jinja2 only treats `{{` and `}}` as special.
+The `[prompt].user` value is a **Jinja2 template**. The `{{ content }}` placeholder is
+the only variable injected during rendering. Literal `{` and `}` characters anywhere in
+the template (JSON schemas, code examples, etc.) are passed through unchanged, since
+Jinja2 only treats `{{` and `}}` as special.
 
 **Template rendering rules:**
 
@@ -171,9 +183,9 @@ etc.) are passed through unchanged, since Jinja2 only treats `{{` and `}}` as sp
   1. The remaining template text (trimmed) as a `{"type": "text", "text": "..."}` part.
      Omitted entirely when the remaining text is empty.
   2. The image as a `{"type": "image_url", "image_url": {"url": "data:<mime>;base64,<b64>"}}` part.
-- If `system` is absent, no system message is included in the API request.
-- If `user` is absent, the full file text (or the image alone) is sent as the sole
-  user message.
+- If `[prompt].system` is absent, no system message is included in the API request.
+- If `[prompt].user` is absent, the full file text (or the image alone) is sent as the
+  sole user message.
 
 ### Dialog File (`.dlg.toml`)
 
@@ -244,11 +256,12 @@ directive, not a conversational turn). Role names are substituted from `[roles]`
 
 ### `config.py`
 
-- Reads the TOML config file (path from `--config` or the default `~/.llmm/config.toml`).
-- Reads `LLMM_PROVIDER_API_BASE_URL` and `LLMM_PROVIDER_API_TOKEN` from the environment.
-- Merges both sources, applying the precedence order.
-- Exposes a single `Config` dataclass consumed by every other module.
-- Does **not** contain role name settings; those are part of the prompt file.
+- Reads the global TOML config file (path from `--config` or the default `~/.llmm/config.toml`).
+- Reads `LLMM_PROVIDER_API_BASE_URL`, `LLMM_PROVIDER_API_AUTH_TOKEN`, and
+  `LLMM_PROVIDER_API_AUTH_TYPE` from the environment.
+- Merges both sources into a base `Config` dataclass.
+- `Config` is subsequently merged with the prompt file's `[provider_api]` and
+  `[llm_params]` overrides (handled in `prompt.py`) before being passed to other modules.
 
 ### `llm_client.py`
 
@@ -258,12 +271,20 @@ directive, not a conversational turn). Role names are substituted from `[roles]`
 - Sets `Authorization: <auth_type> <auth_token>`, `model`, and `temperature` from `Config`.
 - Raises typed exceptions for HTTP-level and API-level errors.
 - No retry logic in v1 — the caller decides on error handling.
+- **v1 implements the `OpenAI Chat Completions` dialect only.** Dialect-specific logic
+  (endpoint path, request/response format) must be isolated so that other OpenAI
+  endpoints and non-OpenAI-compatible vendor dialects can be added in future versions
+  without restructuring the rest of the codebase.
 
 ### `prompt.py`
 
-- Parses a `.prompt` file into `(system: str | None, user_template: str | None,
-  roles: tuple[str, str])` where `roles` is `(user_role, assistant_role)` from the
-  `[roles]` section, defaulting to `("user", "assistant")`.
+- Parses a `.prompt` file and returns:
+  - `[prompt].system: str | None` — system message text.
+  - `[prompt].user: str | None` — Jinja2 user message template.
+  - `[roles]`: `(user_role, assistant_role)` display names, defaulting to
+    `("user", "assistant")` if the section is absent.
+  - `[provider_api]` and `[llm_params]` key-value pairs as config overrides; merged
+    on top of the base `Config` to produce the effective configuration for the run.
 - `render(user_template, file_path) -> str | list[dict]` applies Jinja2 rendering
   with `content` as the sole template variable:
   - text file → plain string result of `Template(user_template).render(content=text)`.
