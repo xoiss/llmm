@@ -127,21 +127,32 @@ Format: INI (Python `configparser` — same syntax family as gitconfig).
 
 ### Prompt File (`.prompt`)
 
-TOML format. Both keys are optional.
+TOML format. Both keys are optional. The `user` value is a **Jinja2 template**; the
+`system` value is a plain string (no template rendering).
 
-    system = "You are a precise and concise assistant."
+    system = "You are a precise and concise assistant. Always respond in JSON."
 
     user = """
-    Analyze the following document and produce a structured summary:
+    Extract all named entities from the document below.
+    Return a JSON object matching this schema:
 
-    {content}
+    {
+      "entities": [{"name": "...", "type": "..."}]
+    }
+
+    Document:
+    {{ content }}
     """
+
+The Jinja2 `{{ content }}` placeholder is the only variable injected during rendering.
+Literal `{` and `}` characters anywhere in the template (JSON schemas, code examples,
+etc.) are passed through unchanged, since Jinja2 only treats `{{` and `}}` as special.
 
 **Template rendering rules:**
 
-- For **text files** (`.txt`, `.md`): `{content}` is replaced with the full UTF-8 file text.
-  The resulting string becomes the `content` field of the user message (a plain string).
-- For **image files** (`.png`, `.jpg`): `{content}` is removed from the template text.
+- For **text files** (`.txt`, `.md`): `{{ content }}` is replaced with the full UTF-8
+  file text. The resulting string becomes the `content` field of the user message.
+- For **image files** (`.png`, `.jpg`): `{{ content }}` is removed from the template.
   The user message `content` field becomes a multimodal array:
   1. The remaining template text (trimmed) as a `{"type": "text", "text": "..."}` part.
      Omitted entirely when the remaining text is empty.
@@ -236,9 +247,11 @@ directive, not a conversational turn). Role names are substituted from `[roles]`
 ### `prompt.py`
 
 - Parses a `.prompt` file into `(system: str | None, user_template: str | None)`.
-- `render(user_template, file_path) -> str | list[dict]` applies the substitution:
-  - text file → plain string after `{content}` replacement.
-  - image file → multimodal content array (see File Formats section).
+- `render(user_template, file_path) -> str | list[dict]` applies Jinja2 rendering
+  with `content` as the sole template variable:
+  - text file → plain string result of `Template(user_template).render(content=text)`.
+  - image file → `{{ content }}` is rendered to an empty string; result is a multimodal
+    content array (see File Formats section).
 
 ### `dialog.py`
 
@@ -344,6 +357,7 @@ directive, not a conversational turn). Role names are substituted from `[roles]`
 | Package        | Purpose                                         | stdlib |
 |----------------|-------------------------------------------------|--------|
 | `requests`     | HTTP client for the LLM API                     | no     |
+| `jinja2`       | Template rendering for prompt files             | no     |
 | `colorama`     | Cross-platform ANSI color support               | no     |
 | `tomllib`      | TOML parser for prompt and dialog files         | yes (3.11+) |
 | `configparser` | INI parser for the main config file             | yes    |
@@ -364,7 +378,7 @@ directive, not a conversational turn). Role names are substituted from `[roles]`
     name            = "llmm"
     version         = "0.1.0"
     requires-python = ">=3.11"
-    dependencies    = ["requests", "colorama"]
+    dependencies    = ["requests", "jinja2", "colorama"]
 
     [project.scripts]
     llmm = "llmm.cli:main"
