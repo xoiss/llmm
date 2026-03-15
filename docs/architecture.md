@@ -89,10 +89,10 @@ should be passed here, ensuring role names are consistent with the original scen
 
 ### Environment Variables
 
-| Variable            | Purpose                                                       |
-|---------------------|---------------------------------------------------------------|
-| `LLMM_API_BASE_URL` | Base URL of the LLM provider (e.g. `http://localhost:8080`)  |
-| `LLMM_API_TOKEN`    | OAuth Bearer token                                            |
+| Variable                      | Purpose                                                       |
+|-------------------------------|---------------------------------------------------------------|
+| `LLMM_PROVIDER_API_BASE_URL`  | Base URL of the LLM provider (e.g. `http://localhost:8080`)  |
+| `LLMM_PROVIDER_API_TOKEN`     | OAuth Bearer token                                            |
 
 ### Config File
 
@@ -243,7 +243,7 @@ directive, not a conversational turn). Role names are substituted from `[roles]`
 ### `config.py`
 
 - Reads the INI config file (path from `--config` or the default `~/.llmm/config`).
-- Reads `LLMM_API_BASE_URL` and `LLMM_API_TOKEN` from the environment.
+- Reads `LLMM_PROVIDER_API_BASE_URL` and `LLMM_PROVIDER_API_TOKEN` from the environment.
 - Merges both sources, applying the precedence order.
 - Exposes a single `Config` dataclass consumed by every other module.
 - Does **not** contain role name settings; those are part of the prompt file.
