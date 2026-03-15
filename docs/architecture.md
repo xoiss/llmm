@@ -66,7 +66,10 @@ The tool targets any LLM provider that exposes an OpenAI-compatible
 
 ### `llmm chat`
 
-    llmm chat --prompt PROMPT_FILE
+    llmm chat --prompt PROMPT_FILE [--dialogs-dir DIALOGS_DIR]
+
+- `--dialogs-dir DIALOGS_DIR`: directory where dialog files are saved. If omitted,
+  dialog files are saved to the current working directory.
 
 Starts an interactive console session. User input and special commands are both entered
 at the same prompt and confirmed with **Enter**. Special commands begin with `/`:
@@ -120,9 +123,6 @@ File format: TOML.
     model                 = "gpt-4o"
     temperature           = 0.7     # optional; range depends on dialect and model (OpenAI: 0 to 2)
     max_completion_tokens = 4096    # optional; maximum value depends on model
-
-    [dialog]
-    directory   = "~/llmm-dialogs"    # default: ~/.llmm/dialogs
 
 ### Precedence (highest to lowest)
 
@@ -198,8 +198,9 @@ Jinja2 only treats `{{` and `}}` as special.
 
 ### Dialog File (`.dlg.toml`)
 
-TOML format. Written append-only during a live session. Stored in the `dialog.directory`
-from config.
+TOML format. Written append-only during a live session. Stored in the directory
+specified by `--dialogs-dir`, or in the current working directory if the option is
+omitted.
 
 **Naming convention:** `dialog_YYYYMMDD_HHMMSS.dlg.toml`
 (timestamp is recorded when the first user message is written to the file).
