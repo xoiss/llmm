@@ -89,24 +89,24 @@ should be passed here, ensuring role names are consistent with the original scen
 
 ### Environment Variables
 
-| Variable                        | Purpose                                                            |
-|---------------------------------|--------------------------------------------------------------------|
-| `LLMM_PROVIDER_API_BASE_URL`    | Base URL of the LLM provider (e.g. `http://localhost:8080`)       |
-| `LLMM_PROVIDER_API_AUTH_TOKEN`  | Token for authenticating requests to the LLM provider API         |
+| Variable                        | Purpose                                                                       |
+|---------------------------------|-------------------------------------------------------------------------------|
+| `LLMM_PROVIDER_API_BASE_URL`    | Base URL of the LLM provider (e.g. `http://localhost:8080`)                   |
+| `LLMM_PROVIDER_API_AUTH_TOKEN`  | Token for authenticating requests to the LLM provider API                     |
 | `LLMM_PROVIDER_API_AUTH_TYPE`   | Token type prefix in the HTTP `Authorization` header (e.g. `Bearer`, `OAuth`) |
 
 ### Config File
 
 Default location: `~/.llmm/config.toml`. Override with `--config FILE`.
 
-Format: TOML (Python `tomllib` stdlib).
+File format: TOML.
 
 **Config file values take precedence over environment variables.**
 
     [provider_api]
     base_url    = "https://api.example.com"
     auth_token  = "my-token"
-    auth_type   = "OAuth"
+    auth_type   = "Bearer"
 
     [llm]
     model       = "gpt-4o"
