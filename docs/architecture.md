@@ -48,13 +48,21 @@ The tool targets any LLM provider that exposes an OpenAI-compatible
 
 ### `llmm run`
 
-    llmm run --prompt PROMPT_FILE INPUT_FILE  [--output OUTPUT_FILE]
-    llmm run --prompt PROMPT_FILE INPUT_DIR   --output-dir OUTPUT_DIR
+    llmm run --prompt PROMPT_FILE [--document DOCUMENT_FILE | --image IMAGE_FILE] [--output OUTPUT_FILE]
+    llmm run --prompt PROMPT_FILE --input-dir INPUT_DIR --output-dir OUTPUT_DIR
 
-- `INPUT_FILE` / `INPUT_DIR`: accepted extensions are `.txt`, `.md`, `.png`, `.jpg`.
-- `--output`: explicit output path (single-file mode only).
+- `--document DOCUMENT_FILE`: text document (`.txt`, `.md`) substituted into the prompt
+  template. Mutually exclusive with `--image`.
+- `--image IMAGE_FILE`: image file (`.png`, `.jpg`) substituted into the prompt
+  template. Mutually exclusive with `--document`.
+- If neither `--document` nor `--image` is specified, the document is read from stdin
+  (via pipe, file redirection, or interactive console input) as plain text.
+- `--input-dir INPUT_DIR`: directory mode — process all `.txt`/`.md`/`.png`/`.jpg`
+  files in the directory. Use `.` to select the current working directory.
+- `--output`: explicit output path (single-document mode only). If omitted, output is
+  written to stdout.
 - `--output-dir`: directory for results (directory mode); output file names inherit the
-  input file stem with a `.md` extension.
+  input file stem with a `.out.md` extension.
 
 ### `llmm chat`
 
@@ -149,7 +157,7 @@ TOML format. All keys are optional.
     }
 
     Document:
-    {{ content }}
+    {{ document }}
     """
 
     [roles]
@@ -169,23 +177,24 @@ they are consistent with the persona or scenario the dialog was designed for (e.
 If `[roles]` is absent, the literal strings `"user"` and `"assistant"` are used as
 fallback.
 
-The `[prompt].user` value is a **Jinja2 template**. The `{{ content }}` placeholder is
+The `[prompt].user` value is a **Jinja2 template**. The `{{ document }}` placeholder is
 the only variable injected during rendering. Literal `{` and `}` characters anywhere in
 the template (JSON schemas, code examples, etc.) are passed through unchanged, since
 Jinja2 only treats `{{` and `}}` as special.
 
 **Template rendering rules:**
 
-- For **text files** (`.txt`, `.md`): `{{ content }}` is replaced with the full UTF-8
-  file text. The resulting string becomes the `content` field of the user message.
-- For **image files** (`.png`, `.jpg`): `{{ content }}` is removed from the template.
-  The user message `content` field becomes a multimodal array:
+- For **text input** (`--document` with `.txt`/`.md`, or stdin): `{{ document }}` is
+  replaced with the full UTF-8 text. The resulting string becomes the `content` field
+  of the user message.
+- For **image input** (`--image` with `.png`/`.jpg`): `{{ document }}` is removed from
+  the template. The user message `content` field becomes a multimodal array:
   1. The remaining template text (trimmed) as a `{"type": "text", "text": "..."}` part.
      Omitted entirely when the remaining text is empty.
   2. The image as a `{"type": "image_url", "image_url": {"url": "data:<mime>;base64,<b64>"}}` part.
 - If `[prompt].system` is absent, no system message is included in the API request.
-- If `[prompt].user` is absent, the full file text (or the image alone) is sent as the
-  sole user message.
+- If `[prompt].user` is absent, the full document text (or the image alone) is sent as
+  the sole user message.
 
 ### Dialog File (`.dlg.toml`)
 
@@ -285,10 +294,16 @@ directive, not a conversational turn). Role names are substituted from `[roles]`
     `("user", "assistant")` if the section is absent.
   - `[provider_api]` and `[llm_params]` key-value pairs as config overrides; merged
     on top of the base `Config` to produce the effective configuration for the run.
-- `render(user_template, file_path) -> str | list[dict]` applies Jinja2 rendering
-  with `content` as the sole template variable:
-  - text file → plain string result of `Template(user_template).render(content=text)`.
-  - image file → `{{ content }}` is rendered to an empty string; result is a multimodal
+- `ImageData` dataclass: wraps an image and exposes a `uri` property that returns the
+  ready-to-use data URI (`data:<mime>;base64,<b64>`). Internal storage and URI
+  construction are implementation details of `ImageData`; `render()` only consumes
+  `image.uri`.
+- `render(user_template, text: str | None, image: ImageData | None) -> str | list[dict]`
+  applies Jinja2 rendering with `document` as the sole template variable. The caller is
+  responsible for reading the source (file or stdin) and supplying either `text` or
+  `image`:
+  - text input → plain string result of `Template(user_template).render(document=text)`.
+  - image input → `{{ document }}` is rendered to an empty string; result is a multimodal
     content array (see File Formats section).
 
 ### `dialog.py`
@@ -360,7 +375,7 @@ directive, not a conversational turn). Role names are substituted from `[roles]`
     config.py --> Config
         |
         v
-    prompt.py --> (system, rendered_user_content)
+    prompt.py --> (system, rendered_user_message)
         |
         v
     [for each input file]
