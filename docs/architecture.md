@@ -127,15 +127,15 @@ Format: INI (Python `configparser` — same syntax family as gitconfig).
 
 ### Prompt File (`.prompt`)
 
-Human-readable INI-like format with two optional sections.
+TOML format. Both keys are optional.
 
-    [system]
-    You are a precise and concise assistant.
+    system = "You are a precise and concise assistant."
 
-    [user]
+    user = """
     Analyze the following document and produce a structured summary:
 
     {content}
+    """
 
 **Template rendering rules:**
 
@@ -146,43 +146,54 @@ Human-readable INI-like format with two optional sections.
   1. The remaining template text (trimmed) as a `{"type": "text", "text": "..."}` part.
      Omitted entirely when the remaining text is empty.
   2. The image as a `{"type": "image_url", "image_url": {"url": "data:<mime>;base64,<b64>"}}` part.
-- If `[system]` is absent, no system message is included in the API request.
-- If `[user]` is absent, the full file text (or the image alone) is sent as the sole
+- If `system` is absent, no system message is included in the API request.
+- If `user` is absent, the full file text (or the image alone) is sent as the sole
   user message.
 
-### Dialog File (`.dlg.md`)
+### Dialog File (`.dlg.toml`)
 
-Written append-only during a live session. Stored in the `dialog.directory` from config.
+TOML format. Written append-only during a live session. Stored in the `dialog.directory`
+from config.
 
-**Naming convention:** `dialog_YYYYMMDD_HHMMSS.md`
+**Naming convention:** `dialog_YYYYMMDD_HHMMSS.dlg.toml`
 (timestamp is recorded when the first user message is written to the file).
 
 **Format:**
 
-    [system]
-    You are a helpful assistant.
+    system = "You are a helpful assistant."
 
-    [user]
-    Hello!
+    [[messages]]
+    role    = "user"
+    content = "Hello!"
 
-    [assistant]
-    Hi there! How can I help you?
+    [[messages]]
+    role    = "assistant"
+    content = "Hi there! How can I help you?"
 
-    [user]
-    Tell me about Python.
+    [[messages]]
+    role    = "user"
+    content = "Tell me about Python."
 
-    [assistant]
-    Python is a high-level, interpreted programming language...
+    [[messages]]
+    role    = "assistant"
+    content = "Python is a high-level, interpreted programming language..."
 
-**Parsing rule:** a section begins with a role tag `[role]` on its own line; the body is
-everything up to (but not including) the next role tag or end-of-file. Leading/trailing
-blank lines within a body are trimmed on read.
+**Parsed with** `tomllib` (Python 3.11+ stdlib). The result is a dict with a `system`
+string and a `messages` list of `{role, content}` dicts — matching the OpenAI
+`/chat/completions` message structure directly.
 
-**Appending a new turn** writes: `\n[role]\n<text>\n`.
+**Appending a new turn** writes:
+
+    \n[[messages]]\nrole    = "<role>"\ncontent = "<escaped content>"\n
+
+Since TOML `[[array of tables]]` entries are simply concatenated, appending a block
+to the end of the file always produces valid TOML. Content strings are written using
+TOML basic string escaping (handled by `dialog.py` without a TOML writer library).
 
 **Design rationale:**
 - Human-readable without special tools.
-- Consistent with the INI-style family used elsewhere in the project.
+- Standard parser (`tomllib`) — no custom parsing logic.
+- Append-friendly: each `[[messages]]` block is independent.
 - Can be fed into Scenario 1 after serialization via `llmm export`.
 
 ### Serialized Dialog File (plain text)
@@ -237,7 +248,7 @@ directive, not a conversational turn). Role names are substituted from `[roles]`
     Raises `RollbackError` when there is nothing to remove.
 - `DialogWriter`: opens a file path, appends turns one at a time, closes on request.
   - The system prompt is written as the first block when the file is created.
-- `load_dialog(path: Path) -> Dialog`: parses a `.dlg.md` file.
+- `load_dialog(path: Path) -> Dialog`: parses a `.dlg.toml` file.
 - **Rollback file lifecycle**: on `/back`, the writer closes the current file.
   When the next user message arrives, a new file is opened and pre-populated by
   writing all turns from the in-memory `Dialog` (the rolled-back state) before
@@ -323,22 +334,23 @@ directive, not a conversational turn). Role names are substituted from `[roles]`
         |
         +-- user message --> llm_client.py --> LLM API --> response text
                                 |
-                                +-- dialog.py (append to .dlg.md)
+                                +-- dialog.py (append to .dlg.toml)
                                 +-- console.py (print response)
 
 ---
 
 ## Dependencies
 
-| Package      | Purpose                              | stdlib |
-|--------------|--------------------------------------|--------|
-| `requests`   | HTTP client for the LLM API          | no     |
-| `colorama`   | Cross-platform ANSI color support    | no     |
-| `configparser` | INI config file parsing            | yes    |
-| `argparse`   | CLI argument parsing                 | yes    |
-| `pathlib`    | Path manipulation                    | yes    |
-| `base64`     | Image encoding for multimodal input  | yes    |
-| `datetime`   | Dialog file timestamps               | yes    |
+| Package        | Purpose                                         | stdlib |
+|----------------|-------------------------------------------------|--------|
+| `requests`     | HTTP client for the LLM API                     | no     |
+| `colorama`     | Cross-platform ANSI color support               | no     |
+| `tomllib`      | TOML parser for prompt and dialog files         | yes (3.11+) |
+| `configparser` | INI parser for the main config file             | yes    |
+| `argparse`     | CLI argument parsing                            | yes    |
+| `pathlib`      | Path manipulation                               | yes    |
+| `base64`       | Image encoding for multimodal input             | yes    |
+| `datetime`     | Dialog file timestamps                          | yes    |
 
 ---
 
