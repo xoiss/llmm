@@ -19,7 +19,7 @@ The tool targets any LLM provider that exposes an OpenAI-compatible
     |       +-- __init__.py
     |       +-- __main__.py         <- `python -m llmm` entry point
     |       +-- cli.py              <- argument parser, subcommand routing
-    |       +-- config.py           <- config loading (env vars + INI file)
+    |       +-- config.py           <- config loading (env vars + TOML file)
     |       +-- llm_client.py       <- OpenAI-compatible HTTP client
     |       +-- prompt.py           <- prompt file parsing and template rendering
     |       +-- dialog.py           <- dialog data model and file I/O
@@ -96,22 +96,22 @@ should be passed here, ensuring role names are consistent with the original scen
 
 ### Config File
 
-Default location: `~/.llmm/config`. Override with `--config FILE`.
+Default location: `~/.llmm/config.toml`. Override with `--config FILE`.
 
-Format: INI (Python `configparser` — same syntax family as gitconfig).
+Format: TOML (Python `tomllib` stdlib).
 
 **Config file values take precedence over environment variables.**
 
     [api]
-    base_url    = https://api.example.com
-    token       = my-oauth-token
-    model       = gpt-4o
+    base_url    = "https://api.example.com"
+    token       = "my-oauth-token"
+    model       = "gpt-4o"
 
     [llm]
     temperature = 0.7
 
     [dialog]
-    directory   = ~/llmm-dialogs      ; default: ~/.llmm/dialogs
+    directory   = "~/llmm-dialogs"    # default: ~/.llmm/dialogs
 
 ### Precedence (highest to lowest)
 
@@ -242,7 +242,7 @@ directive, not a conversational turn). Role names are substituted from `[roles]`
 
 ### `config.py`
 
-- Reads the INI config file (path from `--config` or the default `~/.llmm/config`).
+- Reads the TOML config file (path from `--config` or the default `~/.llmm/config.toml`).
 - Reads `LLMM_PROVIDER_API_BASE_URL` and `LLMM_PROVIDER_API_TOKEN` from the environment.
 - Merges both sources, applying the precedence order.
 - Exposes a single `Config` dataclass consumed by every other module.
@@ -375,8 +375,7 @@ directive, not a conversational turn). Role names are substituted from `[roles]`
 | `requests`     | HTTP client for the LLM API                     | no     |
 | `jinja2`       | Template rendering for prompt files             | no     |
 | `colorama`     | Cross-platform ANSI color support               | no     |
-| `tomllib`      | TOML parser for prompt and dialog files         | yes (3.11+) |
-| `configparser` | INI parser for the main config file             | yes    |
+| `tomllib`      | TOML parser for config, prompt and dialog files | yes (3.11+) |
 | `argparse`     | CLI argument parsing                            | yes    |
 | `pathlib`      | Path manipulation                               | yes    |
 | `base64`       | Image encoding for multimodal input             | yes    |
