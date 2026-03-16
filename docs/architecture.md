@@ -100,7 +100,7 @@ If `/back` is issued when no exchanges remain, a warning is printed and nothing 
     llmm export [--prompt PROMPT_FILE] --dialogs-dir DIALOGS_DIR [--serialized-dir SERIALIZED_DIR]
 
 Converts one or more `.dlg.toml` dialog files to plain text with role names taken from
-the `[roles]` section of the prompt file.
+the `[role_names]` section of the prompt file.
 
 The same prompt file that was used with `llmm chat` when the dialog was recorded
 should be passed here, ensuring role names are consistent with the original scenario.
@@ -198,7 +198,7 @@ TOML format. All keys are optional.
     {{ document }}
     """
 
-    [roles]
+    [role_names]
     user      = "User"
     assistant = "Assistant"
 
@@ -206,13 +206,13 @@ The `[provider_api]` and `[llm_params]` sections mirror the corresponding sectio
 the global config file. Any keys present here take precedence over the global config,
 making the prompt file act as a local (per-scenario) config override.
 
-The `[roles]` section defines the display names substituted for the `user` and
+The `[role_names]` section defines the display names substituted for the `user` and
 `assistant` roles when a dialog is serialized — both by `llmm export` and by the
 `/history` command inside `llmm chat`. Keeping role names in the prompt file guarantees
 they are consistent with the persona or scenario the dialog was designed for (e.g.,
 `"Interviewer"` / `"Candidate"`, `"Doctor"` / `"Patient"`).
 
-If `[roles]` is absent, the literal strings `"user"` and `"assistant"` are used as
+If `[role_names]` is absent, the literal strings `"user"` and `"assistant"` are used as
 fallback.
 
 The `[prompt].user` value is a **Jinja2 template**. The `{{ document }}` placeholder is
@@ -284,7 +284,7 @@ TOML basic string escaping (handled by `dialog.py` without a TOML writer library
 ### Serialized Dialog File (plain text)
 
 Output of `llmm export`. The system prompt section is **not** included (it is an internal
-directive, not a conversational turn). Role names are substituted from `[roles]` in config.
+directive, not a conversational turn). Role names are substituted from `[role_names]` in config.
 
     User:
     Hello!
@@ -329,7 +329,7 @@ directive, not a conversational turn). Role names are substituted from `[roles]`
 - Parses a `.prompt` file and returns:
   - `[prompt].system: str | None` — system message text.
   - `[prompt].user: str | None` — Jinja2 user message template.
-  - `[roles]`: `(user_role, assistant_role)` display names, defaulting to
+  - `[role_names]`: `(user_role, assistant_role)` display names, defaulting to
     `("user", "assistant")` if the section is absent.
   - `[provider_api]` and `[llm_params]` key-value pairs as config overrides; merged
     on top of the base `Config` to produce the effective configuration for the run.
