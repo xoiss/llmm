@@ -153,6 +153,42 @@ If `--prompt` is omitted and no `.prompt` file is found in the lookup directory,
 command exits with an error indicating the expected file name and the directory where it
 was looked up.
 
+### Option aliases
+
+**Global:**
+
+| Short | Long       |
+|-------|------------|
+| `-c`  | `--config` |
+
+**`llmm run`:**
+
+| Short | Long            |
+|-------|-----------------|
+| `-p`  | `--prompt`      |
+| `-d`  | `--document`    |
+| `-i`  | `--image`       |
+| `-o`  | `--output`      |
+| `-I`  | `--input-dir`   |
+| `-O`  | `--output-dir`  |
+
+**`llmm chat`:**
+
+| Short | Long            |
+|-------|-----------------|
+| `-p`  | `--prompt`      |
+| `-D`  | `--dialogs-dir` |
+
+**`llmm export`:**
+
+| Short | Long                |
+|-------|---------------------|
+| `-p`  | `--prompt`          |
+| `-d`  | `--dialog`          |
+| `-s`  | `--serialized`      |
+| `-D`  | `--dialogs-dir`     |
+| `-S`  | `--serialized-dir`  |
+
 ---
 
 ## Configuration
