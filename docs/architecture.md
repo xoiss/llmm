@@ -48,11 +48,14 @@ The tool targets any LLM provider that exposes an OpenAI-compatible
 
 ### `llmm run`
 
-    llmm run --prompt PROMPT_FILE [--document DOCUMENT_FILE | --image IMAGE_FILE] [--output OUTPUT_FILE]
-    llmm run --prompt PROMPT_FILE --input-dir INPUT_DIR [--output-dir OUTPUT_DIR]
+    llmm run [--prompt PROMPT_FILE] [--document DOCUMENT_FILE | --image IMAGE_FILE] [--output OUTPUT_FILE]
+    llmm run [--prompt PROMPT_FILE] --input-dir INPUT_DIR [--output-dir OUTPUT_DIR]
 
 **Single-document mode** (first form):
 
+- `--prompt PROMPT_FILE`: prompt file. If omitted, `.prompt` is looked up in the
+  directory of `--document` or `--image`; if the document is read from stdin, in the
+  current working directory.
 - `--document DOCUMENT_FILE`: text document (`.txt`, `.md`) substituted into the prompt
   template. Mutually exclusive with `--image`.
 - `--image IMAGE_FILE`: image file (`.png`, `.jpg`) substituted into the prompt
@@ -63,6 +66,7 @@ The tool targets any LLM provider that exposes an OpenAI-compatible
 
 **Directory mode** (second form):
 
+- `--prompt PROMPT_FILE`: prompt file. If omitted, `.prompt` is looked up in `INPUT_DIR`.
 - `--input-dir INPUT_DIR`: process all `.txt`/`.md`/`.png`/`.jpg` files in the
   directory. Use `.` to select the current working directory.
 - `--output-dir OUTPUT_DIR`: directory for results; output file names inherit the input
@@ -71,8 +75,10 @@ The tool targets any LLM provider that exposes an OpenAI-compatible
 
 ### `llmm chat`
 
-    llmm chat --prompt PROMPT_FILE [--dialogs-dir DIALOGS_DIR]
+    llmm chat [--prompt PROMPT_FILE] [--dialogs-dir DIALOGS_DIR]
 
+- `--prompt PROMPT_FILE`: prompt file. If omitted, `.prompt` is looked up in
+  `DIALOGS_DIR`.
 - `--dialogs-dir DIALOGS_DIR`: directory where dialog files are saved. If omitted,
   dialog files are saved to the current working directory.
 
@@ -90,24 +96,29 @@ If `/back` is issued when no exchanges remain, a warning is printed and nothing 
 
 ### `llmm export`
 
-    llmm export --prompt PROMPT_FILE [--dialog DIALOG_FILE] [--serialized SERIALIZED_FILE]
-    llmm export --prompt PROMPT_FILE --dialogs-dir DIALOGS_DIR [--serialized-dir SERIALIZED_DIR]
+    llmm export [--prompt PROMPT_FILE] [--dialog DIALOG_FILE] [--serialized SERIALIZED_FILE]
+    llmm export [--prompt PROMPT_FILE] --dialogs-dir DIALOGS_DIR [--serialized-dir SERIALIZED_DIR]
 
 Converts one or more `.dlg.toml` dialog files to plain text with role names taken from
 the `[roles]` section of the prompt file.
 
-The same prompt file that was passed to `llmm chat` when the dialog was recorded
+The same prompt file that was used with `llmm chat` when the dialog was recorded
 should be passed here, ensuring role names are consistent with the original scenario.
 
 **Single-dialog mode** (first form):
 
+- `--prompt PROMPT_FILE`: prompt file. If omitted, `.prompt` is looked up in the
+  directory of `--dialog`; if the dialog is read from stdin, in the current working
+  directory.
 - `--dialog DIALOG_FILE`: input `.dlg.toml` file produced by `llmm chat`. If omitted,
   the dialog is read from stdin.
-- `--serialized SERIALIZED_FILE`: output `.dlg.md` file, suitable for use as a document in
-  `llmm run`. If omitted, output is written to stdout.
+- `--serialized SERIALIZED_FILE`: output `.dlg.md` file, suitable for use as a document
+  in `llmm run`. If omitted, output is written to stdout.
 
 **Directory mode** (second form):
 
+- `--prompt PROMPT_FILE`: prompt file. If omitted, `.prompt` is looked up in
+  `DIALOGS_DIR`.
 - `--dialogs-dir DIALOGS_DIR`: directory to search for `*.dlg.toml` files. Use `.` to
   select the current working directory.
 - `--serialized-dir SERIALIZED_DIR`: directory where serialized `.dlg.md` files are
@@ -115,6 +126,10 @@ should be passed here, ensuring role names are consistent with the original scen
   `.toml` extension with `.md` (e.g. `dialog_20240101_120000.dlg.toml` →
   `dialog_20240101_120000.dlg.md`). If omitted, serialized files are written to
   `DIALOGS_DIR`.
+
+If `--prompt` is omitted and no `.prompt` file is found in the lookup directory, the
+command exits with an error indicating the expected file name and the directory where it
+was looked up.
 
 ---
 
