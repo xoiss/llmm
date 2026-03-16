@@ -367,19 +367,30 @@ TOML basic string escaping (handled by `dialog.py` without a TOML writer library
 
 ### Serialized Dialog File (plain text)
 
-Output of `llmm export`. The system prompt section is **not** included (it is an internal
-directive, not a conversational turn). Role names are substituted from `[role_names]` in config.
+Output of `llmm export`. Role names are substituted from `[role_names]` in the dialog
+file. All text is rendered with `str()` — multi-line content appears as actual multiple
+lines (real newline characters), not as escaped `\n` sequences.
 
-    User:
+    Dialog Setup:
+
+    Architect's objective:
+    You are an experienced software architect. Answer questions clearly and concisely.
+
+    Developer's objective:
+    Discuss the architecture of a new Python CLI tool with the Architect.
+
+    Dialog Messages:
+
+    Developer:
     Hello!
 
-    Assistant:
+    Architect:
     Hi there! How can I help you?
 
-    User:
+    Developer:
     Tell me about Python.
 
-    Assistant:
+    Architect:
     Python is a high-level, interpreted programming language...
 
 ---
@@ -484,8 +495,15 @@ directive, not a conversational turn). Role names are substituted from `[role_na
 ### `serializer.py`
 
 - `serialize(dialog: Dialog, user_role: str, assistant_role: str) -> str`
-- Formats each message as `<Role>:\n<text>\n\n`; skips the system prompt.
-- Role names are supplied by the caller from the parsed prompt file.
+- Formats each entry as `<role_name>:\n<text>\n\n` using `str()` rendering — multi-line
+  text appears with real newline characters, not escaped `\n` sequences.
+- Output structure:
+  1. `"Dialog Setup:\n\n"`
+  2. `"<[role_names].assistant>'s objective:\n<[prompt].system>\n\n"` (if present).
+  3. `"<[role_names].user>'s objective:\n<[chat].task>\n\n"` (if present).
+  4. `"Dialog Messages:\n\n"`
+  5. For each message in order: `"<[role_names].user|assistant>:\n<content>\n\n"`.
+- Role names are read from `[role_names]` in the dialog file and supplied by the caller.
 - Used by both `llmm export` (writes to file/stdout) and `/history` (writes to console).
 
 ### `console.py`
