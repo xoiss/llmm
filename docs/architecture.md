@@ -87,12 +87,34 @@ at the same prompt and confirmed with **Enter**. Special commands begin with `/`
 
 | Command    | Action                                                                    |
 |------------|---------------------------------------------------------------------------|
-| `/new`     | Close the current dialog file and start a new dialog                      |
+| `/new`     | Close and save the current dialog file (if any), then start a new dialog  |
 | `/back`    | Roll back the last user + assistant exchange (repeatable)                 |
 | `/history` | Print the current in-memory dialog to the console                         |
 | `/exit`    | Close the current dialog file and quit the program                        |
 
-If `/back` is issued when no exchanges remain, a warning is printed and nothing changes.
+**Session behavior:**
+
+1. At the start of each new dialog, the user's task is printed to the console
+   *(source of the task text to be defined)*.
+2. The dialog always starts with the user.
+3. After the user enters a message and confirms with **Enter**, the message remains
+   visible on screen. If the terminal does not support this natively, the message is
+   re-printed to the console stream.
+4. The LLM response is printed to the console immediately after the user's message.
+5. After the LLM response, the user is prompted to enter the next message or a command.
+6. Role names from `[role_names]` are used as labels when printing any message to the
+   console — both during the dialog and in response to `/back` and `/history`.
+7. On `/back`: after rollback, the last remaining user + LLM message pair is printed to
+   the console (with role name labels as in point 6).
+8. If `/back` (or a series of `/back` commands) removes all message pairs from the
+   dialog, a notice is printed that no further rollback is possible, followed by the
+   user's task display as in point 1.
+9. On `/new`: if a dialog file is open (i.e. the dialog contains messages), it is closed
+   and saved first; then the in-memory dialog is cleared. A notice is printed confirming
+   the file was saved and the dialog cleared, followed by the user's task display as in
+   point 1.
+10. When a new `.dlg.toml` file is created, or an existing one is closed, an info message
+    is printed to the console indicating the file path.
 
 ### `llmm export`
 
@@ -374,14 +396,24 @@ directive, not a conversational turn). Role names are substituted from `[role_na
 
 - Runs the interactive REPL loop (reads from stdin, writes via `console.py`).
 - Maintains a `Dialog` in memory and a `DialogWriter` for the current file.
-- On user input: checks for a `/command` prefix; otherwise sends to the LLM.
+- On session start and after `/new` or full rollback: prints the user's task, then
+  awaits the first user message.
+- On user input: re-prints the message to the console stream if needed (point 3), then
+  checks for a `/command` prefix; otherwise sends to the LLM and prints the response.
+  All messages are printed with role name labels from `[role_names]`.
 - Command dispatch:
-  - `/new`: close current writer, reset `Dialog`, next message opens a new file.
-  - `/back`: call `Dialog.rollback()`; if `RollbackError`, print warning; close
-    writer; next message opens a new file pre-populated with current `Dialog`.
+  - `/new`: if a dialog file is open, close and save it (print info with file path);
+    clear in-memory `Dialog`; print notice that dialog was saved and cleared; display
+    task; await next message which opens a new file.
+  - `/back`: call `Dialog.rollback()`; close writer (print info with file path); if
+    `RollbackError` (nothing to roll back), print notice and display task; otherwise
+    print the last remaining user + LLM pair; next message opens a new file
+    pre-populated with the current `Dialog`.
   - `/history`: serialize `Dialog` to console using `serializer.py` with role names
-    from config.
-  - `/exit`: close writer and exit.
+    from `[role_names]`.
+  - `/exit`: close writer (print info with file path) and exit.
+- File lifecycle events (open/close of `.dlg.toml`) are always reported to the console
+  via `console.py` with the full file path.
 
 ### `serializer.py`
 
