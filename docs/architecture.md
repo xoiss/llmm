@@ -94,8 +94,8 @@ at the same prompt and confirmed with **Enter**. Special commands begin with `/`
 
 **Session behavior:**
 
-1. At the start of each new dialog, the user's task is printed to the console
-   *(source of the task text to be defined)*.
+1. At the start of each new dialog, the value of `[chat].task` from the prompt file is
+   printed to the console as the user's briefing.
 2. The dialog always starts with the user.
 3. After the user enters a message and confirms with **Enter**, the message remains
    visible on screen. If the terminal does not support this natively, the message is
@@ -235,6 +235,9 @@ File format: TOML.
 
 TOML format. All keys are optional.
 
+**Example for `llmm run`** (`[role_names]` and `[chat]` are not used by `run` and can
+be omitted):
+
     [provider_api]
     # values defined here take precedence over the global config file
 
@@ -256,9 +259,24 @@ TOML format. All keys are optional.
     {{ document }}
     """
 
+**Example for `llmm chat`** (`[prompt].user` and `{{ document }}` are not used by
+`chat` and can be omitted):
+
+    [provider_api]
+    # values defined here take precedence over the global config file
+
+    [llm_params]
+    # values defined here take precedence over the global config file
+
+    [prompt]
+    system = "You are an experienced software architect. Answer questions clearly and concisely."
+
     [role_names]
-    user      = "User"
-    assistant = "Assistant"
+    user      = "Developer"
+    assistant = "Architect"
+
+    [chat]
+    task = "Discuss the architecture of a new Python CLI tool with the Architect."
 
 The `[provider_api]` and `[llm_params]` sections mirror the corresponding sections of
 the global config file. Any keys present here take precedence over the global config,
@@ -291,6 +309,10 @@ Jinja2 only treats `{{` and `}}` as special.
 - If `[prompt].system` is absent, no system message is included in the API request.
 - If `[prompt].user` is absent, the full document text (or the image alone) is sent as
   the sole user message.
+
+The `[chat]` section is specific to `llmm chat` and is ignored by `llmm run` and
+`llmm export`. The `task` key contains the text printed to the console at the start of
+each new dialog session — it serves as the user's briefing or scenario legend.
 
 ### Dialog File (`.dlg.toml`)
 
@@ -432,8 +454,11 @@ directive, not a conversational turn). Role names are substituted from `[role_na
 
 - Runs the interactive REPL loop (reads from stdin, writes via `console.py`).
 - Maintains a `Dialog` in memory and a `DialogWriter` for the current file.
-- On session start and after `/new` or full rollback: prints the user's task, then
-  awaits the first user message.
+- On session start and after `/new` or full rollback: prints `[chat].task` from the
+  prompt file as the user's briefing, then awaits the first user message.
+- Each LLM call passes the full in-memory dialog history — system prompt plus all prior
+  user and assistant messages — ensuring the model has complete context. The same
+  history is persisted turn-by-turn in the `.dlg.toml` file.
 - On user input: re-prints the message to the console stream if needed (point 3), then
   checks for a `/command` prefix; otherwise sends to the LLM and prints the response.
   All messages are printed with role name labels from `[role_names]`.
