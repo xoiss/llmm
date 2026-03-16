@@ -325,7 +325,15 @@ omitted.
 
 **Format:**
 
-    system = "You are a helpful assistant."
+    [prompt]
+    system = "You are an experienced software architect. Answer questions clearly and concisely."
+
+    [role_names]
+    user      = "Developer"
+    assistant = "Architect"
+
+    [chat]
+    task = "Discuss the architecture of a new Python CLI tool with the Architect."
 
     [[messages]]
     role    = "user"
@@ -343,9 +351,14 @@ omitted.
     role    = "assistant"
     content = "Python is a high-level, interpreted programming language..."
 
-**Parsed with** `tomllib` (Python 3.11+ stdlib). The result is a dict with a `system`
-string and a `messages` list of `{role, content}` dicts — matching the OpenAI
-`/chat/completions` message structure directly.
+When a new `.dlg.toml` file is created, the `[prompt]`, `[role_names]`, and `[chat]`
+sections are copied verbatim from the prompt file used in the session. The `[[messages]]`
+array is then appended turn by turn.
+
+**Parsed with** `tomllib`. `[prompt].system` is read as the system prompt;
+`[role_names]` and `[chat]` are available for `llmm export` and for the session UI.
+The `messages` list of `{role, content}` dicts matches the OpenAI `/chat/completions`
+message structure directly.
 
 **Appending a new turn** writes:
 
@@ -432,7 +445,8 @@ directive, not a conversational turn). Role names are substituted from `[role_na
   - `rollback()`: removes the last `(user, assistant)` pair from `messages`.
     Raises `RollbackError` when there is nothing to remove.
 - `DialogWriter`: opens a file path, appends turns one at a time, closes on request.
-  - The system prompt is written as the first block when the file is created.
+  - When the file is created, the `[prompt]`, `[role_names]`, and `[chat]` sections
+    are copied verbatim from the prompt file before any `[[messages]]` are written.
 - `load_dialog(path: Path) -> Dialog`: parses a `.dlg.toml` file.
 - **Rollback file lifecycle**: on `/back`, the writer closes the current file.
   When the next user message arrives, a new file is opened and pre-populated by
