@@ -116,22 +116,20 @@ at the same prompt and confirmed with **Enter**. Special commands begin with `/`
 10. When a new `.dlg.toml` file is created, or an existing one is closed, an info message
     is printed to the console indicating the file path.
 
+If `--prompt` is omitted and no `.prompt` file is found in the lookup directory, the
+command exits with an error indicating the expected file name and the directory where it
+was looked up.
+
 ### `llmm export`
 
-    llmm export [--prompt PROMPT_FILE] [--dialog DIALOG_FILE] [--serialized SERIALIZED_FILE]
-    llmm export [--prompt PROMPT_FILE] --dialogs-dir DIALOGS_DIR [--serialized-dir SERIALIZED_DIR]
+    llmm export [--dialog DIALOG_FILE] [--serialized SERIALIZED_FILE]
+    llmm export --dialogs-dir DIALOGS_DIR [--serialized-dir SERIALIZED_DIR]
 
-Converts one or more `.dlg.toml` dialog files to plain text with role names taken from
-the `[role_names]` section of the prompt file.
-
-The same prompt file that was used with `llmm chat` when the dialog was recorded
-should be passed here, ensuring role names are consistent with the original scenario.
+Converts one or more `.dlg.toml` dialog files to plain text. Role names are taken from
+the `[role_names]` section embedded in each dialog file.
 
 **Single-dialog mode** (first form):
 
-- `--prompt PROMPT_FILE`: prompt file. If omitted, `.prompt` is looked up in the
-  directory of `--dialog`; if the dialog is read from stdin, in the current working
-  directory.
 - `--dialog DIALOG_FILE`: input `.dlg.toml` file produced by `llmm chat`. If omitted,
   the dialog is read from stdin.
 - `--serialized SERIALIZED_FILE`: output `.dlg.md` file, suitable for use as a document
@@ -139,8 +137,6 @@ should be passed here, ensuring role names are consistent with the original scen
 
 **Directory mode** (second form):
 
-- `--prompt PROMPT_FILE`: prompt file. If omitted, `.prompt` is looked up in
-  `DIALOGS_DIR`.
 - `--dialogs-dir DIALOGS_DIR`: directory to search for `*.dlg.toml` files. Use `.` to
   select the current working directory.
 - `--serialized-dir SERIALIZED_DIR`: directory where serialized `.dlg.md` files are
@@ -148,10 +144,6 @@ should be passed here, ensuring role names are consistent with the original scen
   `.toml` extension with `.md` (e.g. `dialog_20240101_120000.dlg.toml` →
   `dialog_20240101_120000.dlg.md`). If omitted, serialized files are written to
   `DIALOGS_DIR`.
-
-If `--prompt` is omitted and no `.prompt` file is found in the lookup directory, the
-command exits with an error indicating the expected file name and the directory where it
-was looked up.
 
 ### Option aliases
 
@@ -183,7 +175,6 @@ was looked up.
 
 | Short | Long                |
 |-------|---------------------|
-| `-p`  | `--prompt`          |
 | `-d`  | `--dialog`          |
 | `-s`  | `--serialized`      |
 | `-D`  | `--dialogs-dir`     |
