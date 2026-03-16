@@ -520,7 +520,7 @@ directive, not a conversational turn). Role names are substituted from `[role_na
 | `requests`     | HTTP client for the LLM API                     | no     |
 | `jinja2`       | Template rendering for prompt files             | no     |
 | `colorama`     | Cross-platform ANSI color support               | no     |
-| `tomllib`      | TOML parser for config, prompt and dialog files | yes (3.11+) |
+| `tomllib`      | TOML parser for config, prompt and dialog files | yes    |
 | `argparse`     | CLI argument parsing                            | yes    |
 | `pathlib`      | Path manipulation                               | yes    |
 | `base64`       | Image encoding for multimodal input             | yes    |
@@ -536,7 +536,7 @@ directive, not a conversational turn). Role names are substituted from `[role_na
 
     [project]
     name            = "llmm"
-    version         = "0.1.0"
+    version         = "1.0.0"
     requires-python = ">=3.11"
     dependencies    = ["requests", "jinja2", "colorama"]
 
