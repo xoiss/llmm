@@ -49,7 +49,9 @@ The tool targets any LLM provider that exposes an OpenAI-compatible
 ### `llmm run`
 
     llmm run --prompt PROMPT_FILE [--document DOCUMENT_FILE | --image IMAGE_FILE] [--output OUTPUT_FILE]
-    llmm run --prompt PROMPT_FILE --input-dir INPUT_DIR --output-dir OUTPUT_DIR
+    llmm run --prompt PROMPT_FILE --input-dir INPUT_DIR [--output-dir OUTPUT_DIR]
+
+**Single-document mode** (first form):
 
 - `--document DOCUMENT_FILE`: text document (`.txt`, `.md`) substituted into the prompt
   template. Mutually exclusive with `--image`.
@@ -57,12 +59,15 @@ The tool targets any LLM provider that exposes an OpenAI-compatible
   template. Mutually exclusive with `--document`.
 - If neither `--document` nor `--image` is specified, the document is read from stdin
   (via pipe, file redirection, or interactive console input) as plain text.
-- `--input-dir INPUT_DIR`: directory mode — process all `.txt`/`.md`/`.png`/`.jpg`
-  files in the directory. Use `.` to select the current working directory.
-- `--output`: explicit output path (single-document mode only). If omitted, output is
-  written to stdout.
-- `--output-dir`: directory for results (directory mode); output file names inherit the
-  input file stem with a `.out.md` extension.
+- `--output OUTPUT_FILE`: output file path. If omitted, output is written to stdout.
+
+**Directory mode** (second form):
+
+- `--input-dir INPUT_DIR`: process all `.txt`/`.md`/`.png`/`.jpg` files in the
+  directory. Use `.` to select the current working directory.
+- `--output-dir OUTPUT_DIR`: directory for results; output file names inherit the input
+  file stem with a `.out.md` extension. If omitted, output files are written to
+  `INPUT_DIR`.
 
 ### `llmm chat`
 
@@ -85,13 +90,31 @@ If `/back` is issued when no exchanges remain, a warning is printed and nothing 
 
 ### `llmm export`
 
-    llmm export --prompt PROMPT_FILE DIALOG_FILE [--output TEXT_FILE]
+    llmm export --prompt PROMPT_FILE [--dialog DIALOG_FILE] [--serialized SERIALIZED_FILE]
+    llmm export --prompt PROMPT_FILE --dialogs-dir DIALOGS_DIR [--serialized-dir SERIALIZED_DIR]
 
-Converts a structured dialog file to plain text with role names taken from the
-`[roles]` section of the prompt file. Writes to stdout if `--output` is omitted.
+Converts one or more `.dlg.toml` dialog files to plain text with role names taken from
+the `[roles]` section of the prompt file.
 
 The same prompt file that was passed to `llmm chat` when the dialog was recorded
 should be passed here, ensuring role names are consistent with the original scenario.
+
+**Single-dialog mode** (first form):
+
+- `--dialog DIALOG_FILE`: input `.dlg.toml` file produced by `llmm chat`. If omitted,
+  the dialog is read from stdin.
+- `--serialized SERIALIZED_FILE`: output `.dlg.md` file, suitable for use as a document in
+  `llmm run`. If omitted, output is written to stdout.
+
+**Directory mode** (second form):
+
+- `--dialogs-dir DIALOGS_DIR`: directory to search for `*.dlg.toml` files. Use `.` to
+  select the current working directory.
+- `--serialized-dir SERIALIZED_DIR`: directory where serialized `.dlg.md` files are
+  written. Output file names are derived from the input file names by replacing the
+  `.toml` extension with `.md` (e.g. `dialog_20240101_120000.dlg.toml` →
+  `dialog_20240101_120000.dlg.md`). If omitted, serialized files are written to
+  `DIALOGS_DIR`.
 
 ---
 
