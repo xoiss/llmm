@@ -12,6 +12,7 @@ class Config:
     base_url: str | None = None
     auth_token: str | None = None
     auth_type: str = "Bearer"
+    ssl_verify: bool = True
     dialect: str = "OpenAI Chat Completions"
     model: str | None = None
     temperature: float | None = None
@@ -26,10 +27,12 @@ def load_config(config_path: Path | None = None) -> Config:
       2. Environment variables
       3. Built-in defaults
     """
+    ssl_verify_env = os.environ.get("LLMM_PROVIDER_API_SSL_VERIFY", "true").lower()
     cfg = Config(
         base_url=os.environ.get("LLMM_PROVIDER_API_BASE_URL"),
         auth_token=os.environ.get("LLMM_PROVIDER_API_AUTH_TOKEN"),
         auth_type=os.environ.get("LLMM_PROVIDER_API_AUTH_TYPE", "Bearer"),
+        ssl_verify=ssl_verify_env not in ("false", "0", "no"),
     )
 
     if config_path is None:
@@ -45,6 +48,8 @@ def load_config(config_path: Path | None = None) -> Config:
             cfg.auth_token = str(provider_api["auth_token"])
         if "auth_type" in provider_api:
             cfg.auth_type = str(provider_api["auth_type"])
+        if "ssl_verify" in provider_api:
+            cfg.ssl_verify = bool(provider_api["ssl_verify"])
 
         llm_params = data.get("llm_params", {})
         if "dialect" in llm_params:

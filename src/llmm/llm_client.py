@@ -81,7 +81,7 @@ def complete(
     }
 
     try:
-        response = requests.post(url, json=body, headers=headers, timeout=120)
+        response = requests.post(url, json=body, headers=headers, timeout=120, verify=config.ssl_verify)
     except requests.RequestException as exc:
         raise LLMHTTPError(f"HTTP request failed: {exc}") from exc
 

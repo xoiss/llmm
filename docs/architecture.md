@@ -192,11 +192,12 @@ names are taken from the `[role_names]` section embedded in each dialog file.
 
 ### Environment Variables
 
-| Variable                        | Purpose                                                                       |
-|---------------------------------|-------------------------------------------------------------------------------|
-| `LLMM_PROVIDER_API_BASE_URL`    | Base URL of the LLM provider (e.g. `http://localhost:8080`)                   |
-| `LLMM_PROVIDER_API_AUTH_TOKEN`  | Token for authenticating requests to the LLM provider API                     |
-| `LLMM_PROVIDER_API_AUTH_TYPE`   | Token type prefix in the HTTP `Authorization` header (e.g. `Bearer`, `OAuth`) |
+| Variable                          | Purpose                                                                       |
+|-----------------------------------|-------------------------------------------------------------------------------|
+| `LLMM_PROVIDER_API_BASE_URL`      | Base URL of the LLM provider (e.g. `http://localhost:8080`)                   |
+| `LLMM_PROVIDER_API_AUTH_TOKEN`    | Token for authenticating requests to the LLM provider API                     |
+| `LLMM_PROVIDER_API_AUTH_TYPE`     | Token type prefix in the HTTP `Authorization` header (e.g. `Bearer`, `OAuth`) |
+| `LLMM_PROVIDER_API_SSL_VERIFY`    | Set to `false` (or `0`, `no`) to disable TLS certificate verification; useful when the provider uses a self-signed certificate. Default: `true`. |
 
 ### Config File
 
@@ -210,6 +211,7 @@ File format: TOML.
     base_url    = "https://api.example.com"
     auth_token  = "my-token"
     auth_type   = "Bearer"
+    ssl_verify  = true   # set to false to disable TLS certificate verification
 
     [llm_params]
     dialect               = "OpenAI Chat Completions"  # selects the API endpoint and request/response format
@@ -430,8 +432,8 @@ Output of `llmm export`. Produced by rendering the Jinja template with the dialo
 ### `config.py`
 
 - Reads the global TOML config file (path from `--config` or the default `~/.llmm/config.toml`).
-- Reads `LLMM_PROVIDER_API_BASE_URL`, `LLMM_PROVIDER_API_AUTH_TOKEN`, and
-  `LLMM_PROVIDER_API_AUTH_TYPE` from the environment.
+- Reads `LLMM_PROVIDER_API_BASE_URL`, `LLMM_PROVIDER_API_AUTH_TOKEN`,
+  `LLMM_PROVIDER_API_AUTH_TYPE`, and `LLMM_PROVIDER_API_SSL_VERIFY` from the environment.
 - Merges both sources into a base `Config` dataclass.
 - `Config` is subsequently merged with the prompt file's `[provider_api]` and
   `[llm_params]` overrides (handled in `prompt.py`) before being passed to other modules.
@@ -443,6 +445,8 @@ Output of `llmm export`. Produced by rendering the Jinja template with the dialo
 - Handles both plain-string and multimodal (content array) user messages.
 - Sets `Authorization: <auth_type> <auth_token>`, `model`, `temperature`, and
   `max_completion_tokens` from `Config`.
+- Passes `Config.ssl_verify` to the underlying `requests.post` call; set to `false`
+  to allow self-signed TLS certificates (e.g. corporate proxies or internal providers).
 - Raises typed exceptions for HTTP-level and API-level errors.
 - No retry logic in v1 — the caller decides on error handling.
 - **v1 implements the `OpenAI Chat Completions` dialect only.** Dialect-specific logic
