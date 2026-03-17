@@ -1,4 +1,4 @@
-# Project Dialog 1 — Initial Code Generation
+# Project Dialog — Code Generation & Tooling
 
 ## User
 
@@ -35,4 +35,92 @@
 
 ## Assistant
 
-Сохранил диалог в `docs/project-dialog-1.md`.
+Сохранено в `docs/project-dialog-1.md`.
+
+## User
+
+Подскажи, пожалуйста, как это (1) собрать и запустить локально из директории проекта, (2) собрать и залить на PyPI.org или Test.PyPI.org/
+
+## Assistant
+
+### 1. Запуск локально из директории проекта
+
+**Editable install (рекомендуется для разработки):**
+
+```bash
+cd /path/to/llmm          # корень репозитория
+pip install -e .
+llmm --help               # работает как обычная команда
+python -m llmm --help     # альтернативно
+```
+
+Флаг `-e` означает «editable» — пакет устанавливается как ссылка на исходники, изменения в `src/llmm/` применяются сразу без переустановки.
+
+### 2. Сборка дистрибутива
+
+Нужен `hatchling` (уже указан в `pyproject.toml`) и инструмент `build`:
+
+```bash
+pip install build
+cd /path/to/llmm
+python -m build
+```
+
+Результат в `dist/`:
+```
+dist/
+  llmm-1.0.0a1.tar.gz
+  llmm-1.0.0a1-py3-none-any.whl
+```
+
+### 3. Загрузка на PyPI / TestPyPI
+
+```bash
+pip install twine
+```
+
+**TestPyPI (сначала проверить здесь):**
+
+```bash
+twine upload --repository testpypi dist/*
+pip install --index-url https://test.pypi.org/simple/ llmm
+```
+
+**PyPI (боевой):**
+
+```bash
+twine upload dist/*
+```
+
+Авторизация через API-токен — в `~/.pypirc`:
+
+```ini
+[pypi]
+username = __token__
+password = pypi-AgEIcH...
+
+[testpypi]
+repository = https://test.pypi.org/legacy/
+username = __token__
+password = pypi-AgEIcH...
+```
+
+**Порядок действий:**
+
+```bash
+pip install build twine
+python -m build
+twine check dist/*
+twine upload --repository testpypi dist/*   # тест
+twine upload dist/*                         # релиз
+```
+
+Токены создаются в личном кабинете на pypi.org/manage/account/token/ и test.pypi.org/manage/account/token/.
+
+## User
+
+сохрани диалог в x.md
+
+## Assistant
+
+Сохранено в `docs/x.md`.
