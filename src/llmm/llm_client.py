@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Union
 
 import requests
+import urllib3
 
 from llmm.config import Config
 from llmm.dialog import Message
@@ -79,6 +80,9 @@ def complete(
         "Authorization": f"{config.auth_type} {config.auth_token}",
         "Content-Type": "application/json",
     }
+
+    if not config.ssl_verify:
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
     try:
         response = requests.post(url, json=body, headers=headers, timeout=120, verify=config.ssl_verify)
