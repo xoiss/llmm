@@ -620,7 +620,7 @@ Output of `llmm export`. Produced by rendering the Jinja template with the dialo
 
     [project]
     name            = "llmm"
-    version         = "1.0.0"
+    version         = "1.0.0a1"
     requires-python = ">=3.11"
     dependencies    = ["requests>=2.32.5", "jinja2>=3.1.6", "colorama>=0.4.6", "tomlkit>=0.14.0"]
 
