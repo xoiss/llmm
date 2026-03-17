@@ -313,7 +313,7 @@ each new dialog session — it serves as the user's briefing or scenario legend.
 
 ### Dialog File (`.dlg.toml`)
 
-TOML format. Written append-only during a live session. Stored in the directory
+TOML format. Managed by `tomlkit` during a live session. Stored in the directory
 specified by `--dialogs-dir`, or in the current working directory if the option is
 omitted.
 
@@ -348,27 +348,22 @@ omitted.
     role    = "assistant"
     content = "Python is a high-level, interpreted programming language..."
 
-When a new `.dlg.toml` file is created, the `[prompt]`, `[role_names]`, and `[chat]`
-sections are copied verbatim from the prompt file used in the session. The `[[messages]]`
-array is then appended turn by turn.
+When a new `.dlg.toml` file is created, the header sections (`[prompt]`, `[role_names]`,
+`[chat]`) are constructed from the `Dialog` fields using `tomlkit`. If the in-memory
+dialog already contains messages, they are written as the initial `[[messages]]` array
+of tables. Subsequent turns are added one at a time via `tomlkit` load → modify → save.
 
-**Parsed with** `tomllib`. `[prompt].system` is read as the system prompt;
+**Parsed and written with** `tomlkit`. `[prompt].system` is read as the system prompt;
 `[role_names]` and `[chat]` are available for `llmm export` and for the session UI.
 The `messages` list of `{role, content}` dicts matches the OpenAI `/chat/completions`
 message structure directly.
 
-**Appending a new turn** writes:
-
-    \n[[messages]]\nrole    = "<role>"\ncontent = "<escaped content>"\n
-
-Since TOML `[[array of tables]]` entries are simply concatenated, appending a block
-to the end of the file always produces valid TOML. Content strings are written using
-TOML basic string escaping (handled by `dialog.py` without a TOML writer library).
+**Appending a new turn**: the document is loaded with `tomlkit`, a new entry is added
+to the `messages` array of tables, and the document is saved back to the file.
 
 **Design rationale:**
 - Human-readable without special tools.
-- Standard parser (`tomllib`) — no custom parsing logic.
-- Append-friendly: each `[[messages]]` block is independent.
+- `tomlkit` handles all reading and writing — no custom parsing or serialization logic.
 - Can be fed into Scenario 1 after serialization via `llmm export`.
 
 ### Serialization Template (`template.jinja`)
@@ -486,8 +481,10 @@ Output of `llmm export`. Produced by rendering the Jinja template with the dialo
   - `rollback()`: removes the last `(user, assistant)` pair from `messages`.
     Raises `RollbackError` when there is nothing to remove.
 - `DialogWriter`: opens a file path, appends turns one at a time, closes on request.
-  - When the file is created, the `[prompt]`, `[role_names]`, and `[chat]` sections
-    are copied verbatim from the prompt file before any `[[messages]]` are written.
+  - When the file is created, the header sections (`[prompt]`, `[role_names]`, `[chat]`)
+    are constructed from the `Dialog` fields and written using `tomlkit`. If
+    `Dialog.messages` is non-empty (e.g. after a partial `/back`), the existing
+    messages are also written as the initial `[[messages]]` array of tables.
 - `load_dialog(path: Path) -> Dialog`: parses a `.dlg.toml` file.
 - **Rollback file lifecycle**: on `/back`, the writer closes the current file.
   When the next user message arrives, a new file is opened and pre-populated by
@@ -608,7 +605,7 @@ Output of `llmm export`. Produced by rendering the Jinja template with the dialo
 | `requests`     | HTTP client for the LLM API                     | no     |
 | `jinja2`       | Template rendering for prompt and serialization templates | no     |
 | `colorama`     | Cross-platform ANSI color support               | no     |
-| `tomllib`      | TOML parser for config, prompt and dialog files | yes    |
+| `tomlkit`      | TOML reading, writing and editing for all `.toml` files | no     |
 | `argparse`     | CLI argument parsing                            | yes    |
 | `pathlib`      | Path manipulation                               | yes    |
 | `base64`       | Image encoding for multimodal input             | yes    |
@@ -626,7 +623,7 @@ Output of `llmm export`. Produced by rendering the Jinja template with the dialo
     name            = "llmm"
     version         = "1.0.0"
     requires-python = ">=3.11"
-    dependencies    = ["requests", "jinja2", "colorama"]
+    dependencies    = ["requests", "jinja2", "colorama", "tomlkit"]
 
     [project.scripts]
     llmm = "llmm.cli:main"
