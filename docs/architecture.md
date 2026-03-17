@@ -351,15 +351,13 @@ omitted.
 When a new `.dlg.toml` file is created, the header sections (`[prompt]`, `[role_names]`,
 `[chat]`) are constructed from the `Dialog` fields using `tomlkit`. If the in-memory
 dialog already contains messages, they are written as the initial `[[messages]]` array
-of tables. Subsequent turns are added one at a time via `tomlkit` load → modify → save.
+of tables. Each subsequent turn is added by loading the document with `tomlkit`,
+appending a new entry to the `messages` array of tables, and saving the file.
 
 **Parsed and written with** `tomlkit`. `[prompt].system` is read as the system prompt;
 `[role_names]` and `[chat]` are available for `llmm export` and for the session UI.
 The `messages` list of `{role, content}` dicts matches the OpenAI `/chat/completions`
 message structure directly.
-
-**Appending a new turn**: the document is loaded with `tomlkit`, a new entry is added
-to the `messages` array of tables, and the document is saved back to the file.
 
 **Design rationale:**
 - Human-readable without special tools.
@@ -443,7 +441,8 @@ Output of `llmm export`. Produced by rendering the Jinja template with the dialo
 - Wraps `requests.post` to `<base_url>/chat/completions` (synchronous, non-streaming).
 - Builds the `messages` list from a sequence of `Message` objects.
 - Handles both plain-string and multimodal (content array) user messages.
-- Sets `Authorization: <auth_type> <auth_token>`, `model`, and `temperature` from `Config`.
+- Sets `Authorization: <auth_type> <auth_token>`, `model`, `temperature`, and
+  `max_completion_tokens` from `Config`.
 - Raises typed exceptions for HTTP-level and API-level errors.
 - No retry logic in v1 — the caller decides on error handling.
 - **v1 implements the `OpenAI Chat Completions` dialect only.** Dialect-specific logic
