@@ -463,6 +463,7 @@ Output of `llmm export`. Produced by rendering the Jinja template with the dialo
   - `[prompt].user: str | None` — Jinja2 user message template.
   - `[role_names]`: `(user_role, assistant_role)` display names, defaulting to
     `("user", "assistant")` if the section is absent.
+  - `[chat].task: str | None` — user's briefing text for `llmm chat` sessions.
   - `[provider_api]` and `[llm_params]` key-value pairs as config overrides; merged
     on top of the base `Config` to produce the effective configuration for the run.
 - `ImageData` dataclass: wraps an image and exposes a `uri` property that returns the
@@ -508,14 +509,15 @@ Output of `llmm export`. Produced by rendering the Jinja template with the dialo
 
 - Runs the interactive REPL loop (reads from stdin, writes via `console.py`).
 - Maintains a `Dialog` in memory and a `DialogWriter` for the current file.
-- On session start and after `/new` or full rollback: prints `[chat].task` from the
-  prompt file as the user's briefing, then awaits the first user message.
+- On session start and after `/new` or full rollback: prints `dialog.task` as the
+  user's briefing, then awaits the first user message.
 - Each LLM call passes the full in-memory dialog history — system prompt plus all prior
   user and assistant messages — ensuring the model has complete context. The same
   history is persisted turn-by-turn in the `.dlg.toml` file.
 - On user input: re-prints the message to the console stream if needed (point 3), then
   checks for a `/command` prefix; otherwise sends to the LLM and prints the response.
-  All messages are printed with role name labels from `[role_names]`.
+  All messages are printed with role name labels from `dialog.user_role` and
+  `dialog.assistant_role`.
 - Command dispatch:
   - `/new`: if a dialog file is open, close and save it (print info with file path);
     clear in-memory `Dialog`; print notice that dialog was saved and cleared; display
@@ -524,8 +526,7 @@ Output of `llmm export`. Produced by rendering the Jinja template with the dialo
     `RollbackError` (nothing to roll back), print notice and display task; otherwise
     print the last remaining user + LLM pair; next message opens a new file
     pre-populated with the current `Dialog`.
-  - `/history`: serialize `Dialog` to console using `serializer.py` with role names
-    from `[role_names]`.
+  - `/history`: print the in-memory dialog to the console using a fixed-format renderer.
   - `/exit`: close writer (print info with file path) and exit.
 - File lifecycle events (open/close of `.dlg.toml`) are always reported to the console
   via `console.py` with the full file path.
@@ -586,7 +587,7 @@ Output of `llmm export`. Produced by rendering the Jinja template with the dialo
     config.py --> Config
         |
         v
-    prompt.py --> system_prompt
+    prompt.py --> Dialog (system_prompt, task, user_role, assistant_role)
         |
         v
     scenario2.py  <-- stdin (user input or /command)
@@ -605,7 +606,7 @@ Output of `llmm export`. Produced by rendering the Jinja template with the dialo
 | Package        | Purpose                                         | stdlib |
 |----------------|-------------------------------------------------|--------|
 | `requests`     | HTTP client for the LLM API                     | no     |
-| `jinja2`       | Template rendering for prompt files             | no     |
+| `jinja2`       | Template rendering for prompt and serialization templates | no     |
 | `colorama`     | Cross-platform ANSI color support               | no     |
 | `tomllib`      | TOML parser for config, prompt and dialog files | yes    |
 | `argparse`     | CLI argument parsing                            | yes    |
