@@ -53,7 +53,7 @@ The tool targets any LLM provider that exposes an OpenAI-compatible
 
 **Single-document mode** (first form):
 
-- `--prompt PROMPT_FILE`: prompt file. If omitted, `.prompt` is looked up in the
+- `--prompt PROMPT_FILE`: prompt file. If omitted, `prompt.toml` is looked up in the
   directory of `--document` or `--image`; if the document is read from stdin, in the
   current working directory.
 - `--document DOCUMENT_FILE`: text document (`.txt`, `.md`) substituted into the prompt
@@ -66,7 +66,7 @@ The tool targets any LLM provider that exposes an OpenAI-compatible
 
 **Directory mode** (second form):
 
-- `--prompt PROMPT_FILE`: prompt file. If omitted, `.prompt` is looked up in `INPUT_DIR`.
+- `--prompt PROMPT_FILE`: prompt file. If omitted, `prompt.toml` is looked up in `INPUT_DIR`.
 - `--input-dir INPUT_DIR`: process all `.txt`/`.md`/`.png`/`.jpg` files in the
   directory. Use `.` to select the current working directory.
 - `--output-dir OUTPUT_DIR`: directory for results; output file names inherit the input
@@ -77,7 +77,7 @@ The tool targets any LLM provider that exposes an OpenAI-compatible
 
     llmm chat [--prompt PROMPT_FILE] [--dialogs-dir DIALOGS_DIR]
 
-- `--prompt PROMPT_FILE`: prompt file. If omitted, `.prompt` is looked up in
+- `--prompt PROMPT_FILE`: prompt file. If omitted, `prompt.toml` is looked up in
   `DIALOGS_DIR`.
 - `--dialogs-dir DIALOGS_DIR`: directory where dialog files are saved. If omitted,
   dialog files are saved to the current working directory.
@@ -116,7 +116,7 @@ at the same prompt and confirmed with **Enter**. Special commands begin with `/`
 10. When a new `.dlg.toml` file is created, or an existing one is closed, an info message
     is printed to the console indicating the file path.
 
-If `--prompt` is omitted and no `.prompt` file is found in the lookup directory, the
+If `--prompt` is omitted and no `prompt.toml` file is found in the lookup directory, the
 command exits with an error indicating the expected file name and the directory where it
 was looked up.
 
@@ -228,7 +228,7 @@ File format: TOML.
 
 ## File Formats
 
-### Prompt File (`.prompt`)
+### Prompt File (`prompt.toml`)
 
 TOML format. All keys are optional.
 
@@ -458,7 +458,7 @@ Output of `llmm export`. Produced by rendering the Jinja template with the dialo
 
 ### `prompt.py`
 
-- Parses a `.prompt` file and returns:
+- Parses a `prompt.toml` file and returns:
   - `[prompt].system: str | None` — system message text.
   - `[prompt].user: str | None` — Jinja2 user message template.
   - `[role_names]`: `(user_role, assistant_role)` display names, defaulting to
