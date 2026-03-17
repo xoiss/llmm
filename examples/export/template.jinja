@@ -1,0 +1,18 @@
+Dialog Setup:
+{%- if system_prompt %}
+
+{{ assistant_role }}'s objective:
+{{ system_prompt }}
+{%- endif %}
+{%- if task %}
+
+{{ user_role }}'s objective:
+{{ task }}
+{%- endif %}
+
+Dialog Messages:
+{%- for message in messages %}
+
+{{ message.role }}:
+{{ message.content }}
+{%- endfor %}

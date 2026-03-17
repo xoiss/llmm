@@ -210,8 +210,3 @@ __marimo__/
 /.project
 /.pydevproject
 /.settings/
-
-# llmm: dialog files and generated outputs produced during use
-*.dlg.toml
-*.dlg.md
-*.out.md

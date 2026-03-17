@@ -1,0 +1,20 @@
+[provider_api]
+# values defined here take precedence over the global config file
+
+[llm_params]
+# values defined here take precedence over the global config file
+
+[prompt]
+system = "You are a precise and concise assistant. Always respond in JSON."
+
+user = """
+Extract all named entities from the document below.
+Return a JSON object matching this schema:
+
+{
+  "entities": [{"name": "...", "type": "..."}]
+}
+
+Document:
+{{ document }}
+"""

@@ -1,0 +1,11 @@
+[provider_api]
+base_url    = "..."  # LLM provider Base URL; don't forget to remove trailing /chat/completions
+auth_token  = "..."  # your API token
+auth_type   = "Bearer"
+ssl_verify  = false
+
+[llm_params]
+dialect               = "OpenAI Chat Completions"  # selects the API endpoint and request/response format
+model                 = "..."  # specify model name
+# temperature           = 0.7     # optional; range depends on dialect and model (OpenAI: 0 to 2)
+# max_completion_tokens = 4096    # optional; maximum value depends on model

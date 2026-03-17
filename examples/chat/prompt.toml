@@ -1,0 +1,15 @@
+[provider_api]
+# values defined here take precedence over the global config file
+
+[llm_params]
+# values defined here take precedence over the global config file
+
+[prompt]
+system = "You are an experienced software architect. Answer questions clearly and concisely."
+
+[role_names]
+user      = "Developer"
+assistant = "Architect"
+
+[chat]
+task = "Discuss the architecture of a new Python CLI tool with the Architect."

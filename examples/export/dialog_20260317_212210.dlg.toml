@@ -1,0 +1,21 @@
+[prompt]
+system = "You are an experienced software architect. Answer questions clearly and concisely."
+
+[role_names]
+user = "Developer"
+assistant = "Architect"
+
+[chat]
+task = "Discuss the architecture of a new Python CLI tool with the Architect."
+[[messages]]
+role = "user"
+content = "Привет! Мне надо сделать утилиту командной строки для выполнения четырёх арифметических действий."
+[[messages]]
+role = "assistant"
+content = "Привет! Для создания утилиты командной строки, выполняющей четыре арифметических действия (сложение, вычитание, умножение и деление), предлагаю следующий подход:\n\n1. **Определите структуру программы:**  \n   - основной модуль, который парсит аргументы командной строки;\n   - модуль с функциями для выполнения арифметических операций;\n   - модуль вывода результатов.\n\n2. **Используйте парсер аргументов** (например, `argparse` в Python) для обработки входных данных:\n   - два числа — операнды;\n   - символ операции (+, -, *, /).\n\n3. **Реализуйте функции для каждой операции:**\n   ```python\n   def add(a, b):\n       return a + b\n\n   def subtract(a, b):\n       return a - b\n\n   def multiply(a, b):\n       return a * b\n\n   def divide(a, b):\n       if b == 0:\n           raise ValueError(\"Division by zero is not allowed\")\n       return a / b\n   ```\n\n4. **Свяжите парсер с функциями:**  \n   В зависимости от переданного символа операции вызывайте соответствующую функцию.\n\n5. **Добавьте обработку ошибок:**\n   - проверка корректности ввода чисел;\n   - обработка деления на ноль;\n   - вывод понятного сообщения об ошибке.\n\n6. **Выведите результат** в консоль в формате, удобном для чтения.\n\n### Пример вызова утилиты\n```bash\npython calculator.py 10 5 +\n```\n**Результат:** `15`\n\n### Краткие шаги для реализации (на примере Python):\n1. Установите необходимые библиотеки (если нужно).\n2. Создайте файл `calculator.py`.\n3. Импортируйте `argparse`.\n4. Определите парсер и добавьте аргументы.\n5. Реализуйте функции арифметических операций.\n6. Напишите логику выбора операции и вызова функции.\n7. Добавьте обработку исключений.\n8. Выведите результат.\n\nЕсли нужна помощь с конкретным языком программирования или этапом разработки — дайте знать!"
+[[messages]]
+role = "user"
+content = "Не, а ты можешь вот только код написать?"
+[[messages]]
+role = "assistant"
+content = "Конечно! Вот пример кода на Python для утилиты командной строки, выполняющей четыре арифметических действия:\n\n```python\nimport argparse\n\ndef add(a, b):\n    return a + b\n\ndef subtract(a, b):\n    return a - b\n\ndef multiply(a, b):\n    return a * b\n\ndef divide(a, b):\n    if b == 0:\n        raise ValueError(\"Division by zero is not allowed\")\n    return a / b\n\ndef main():\n    parser = argparse.ArgumentParser(description='Simple command-line calculator.')\n    parser.add_argument('num1', type=float, help='First number')\n    parser.add_argument('num2', type=float, help='Second number')\n    parser.add_argument('operation', choices=['+', '-', '*', '/'], help='Operation to perform')\n\n    args = parser.parse_args()\n\n    operations = {\n        '+': add,\n        '-': subtract,\n        '*': multiply,\n        '/': divide\n    }\n\n    try:\n        result = operations[args.operation](args.num1, args.num2)\n        print(f'Result: {result}')\n    except ValueError as e:\n        print(f'Error: {e}')\n\nif __name__ == '__main__':\n    main()\n```\n\n**Как использовать:**\n1. Сохраните код в файл, например, `calculator.py`.\n2. Запустите утилиту из командной строки, передав два числа и операцию:\n   ```bash\n   python calculator.py 10 5 +\n   ```\n3. Результат будет выведен в консоль.\n\n**Примеры вызовов:**\n- `python calculator.py 10 5 +` → `Result: 15.0`\n- `python calculator.py 10 5 -` → `Result: 5.0`\n- `python calculator.py 10 5 *` → `Result: 50.0`\n- `python calculator.py 10 5 /` → `Result: 2.0`\n\nЕсли нужно адаптировать код под другой язык программирования — дайте знать!"
