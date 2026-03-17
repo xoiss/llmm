@@ -122,14 +122,17 @@ was looked up.
 
 ### `llmm export`
 
-    llmm export [--dialog DIALOG_FILE] [--serialized SERIALIZED_FILE]
-    llmm export --dialogs-dir DIALOGS_DIR [--serialized-dir SERIALIZED_DIR]
+    llmm export [--template TEMPLATE_FILE] [--dialog DIALOG_FILE] [--serialized SERIALIZED_FILE]
+    llmm export [--template TEMPLATE_FILE] --dialogs-dir DIALOGS_DIR [--serialized-dir SERIALIZED_DIR]
 
-Converts one or more `.dlg.toml` dialog files to plain text. Role names are taken from
-the `[role_names]` section embedded in each dialog file.
+Converts one or more `.dlg.toml` dialog files to plain text using a Jinja template. Role
+names are taken from the `[role_names]` section embedded in each dialog file.
 
 **Single-dialog mode** (first form):
 
+- `--template TEMPLATE_FILE`: Jinja template file (`.jinja` or `.j2`) used to render the
+  serialized output. If omitted, `template.jinja` is looked up in the same directory as
+  `DIALOG_FILE`, or in the current working directory if the dialog is read from stdin.
 - `--dialog DIALOG_FILE`: input `.dlg.toml` file produced by `llmm chat`. If omitted,
   the dialog is read from stdin.
 - `--serialized SERIALIZED_FILE`: output `.dlg.md` file, suitable for use as a document
@@ -137,6 +140,8 @@ the `[role_names]` section embedded in each dialog file.
 
 **Directory mode** (second form):
 
+- `--template TEMPLATE_FILE`: Jinja template file (`.jinja` or `.j2`) used to render the
+  serialized output. If omitted, `template.jinja` is looked up in `DIALOGS_DIR`.
 - `--dialogs-dir DIALOGS_DIR`: directory to search for `*.dlg.toml` files. Use `.` to
   select the current working directory.
 - `--serialized-dir SERIALIZED_DIR`: directory where serialized `.dlg.md` files are
@@ -175,6 +180,7 @@ the `[role_names]` section embedded in each dialog file.
 
 | Short | Long                |
 |-------|---------------------|
+| `-t`  | `--template`        |
 | `-d`  | `--dialog`          |
 | `-s`  | `--serialized`      |
 | `-D`  | `--dialogs-dir`     |
@@ -443,7 +449,8 @@ lines (real newline characters), not as escaped `\n` sequences.
 ### `dialog.py`
 
 - `Message` dataclass: `role: str`, `content: str`.
-- `Dialog` dataclass: `system_prompt: str | None`, `messages: list[Message]`.
+- `Dialog` dataclass: `system_prompt: str | None`, `task: str | None`,
+  `user_role: str`, `assistant_role: str`, `messages: list[Message]`.
   - `rollback()`: removes the last `(user, assistant)` pair from `messages`.
     Raises `RollbackError` when there is nothing to remove.
 - `DialogWriter`: opens a file path, appends turns one at a time, closes on request.
@@ -494,17 +501,18 @@ lines (real newline characters), not as escaped `\n` sequences.
 
 ### `serializer.py`
 
-- `serialize(dialog: Dialog, user_role: str, assistant_role: str) -> str`
-- Formats each entry as `<role_name>:\n<text>\n\n` using `str()` rendering — multi-line
-  text appears with real newline characters, not escaped `\n` sequences.
-- Output structure:
-  1. `"Dialog Setup:\n\n"`
-  2. `"<[role_names].assistant>'s objective:\n<[prompt].system>\n\n"` (if present).
-  3. `"<[role_names].user>'s objective:\n<[chat].task>\n\n"` (if present).
-  4. `"Dialog Messages:\n\n"`
-  5. For each message in order: `"<[role_names].user|assistant>:\n<content>\n\n"`.
-- Role names are read from `[role_names]` in the dialog file and supplied by the caller.
-- Used by both `llmm export` (writes to file/stdout) and `/history` (writes to console).
+- `serialize(template: jinja2.Template, dialog: Dialog) -> str`
+- Renders the dialog by evaluating `template` with a Jinja context containing:
+  - `user_role` — display name for the user (from `dialog.user_role`).
+  - `assistant_role` — display name for the assistant (from `dialog.assistant_role`).
+  - `system_prompt` — value from `dialog.system_prompt`, or `None` if absent.
+  - `task` — value from `dialog.task`, or `None` if absent.
+  - `messages` — list of `{role, content}` objects in conversation order; `role` is
+    already substituted with the corresponding display name.
+- All string values passed to the template contain real newline characters (not escaped
+  `\n` sequences).
+- Used by `llmm export` (writes to file/stdout); `/history` in chat mode uses a separate
+  fixed-format renderer.
 
 ### `console.py`
 
