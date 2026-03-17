@@ -371,11 +371,42 @@ TOML basic string escaping (handled by `dialog.py` without a TOML writer library
 - Append-friendly: each `[[messages]]` block is independent.
 - Can be fed into Scenario 1 after serialization via `llmm export`.
 
-### Serialized Dialog File (plain text)
+### Serialization Template (`template.jinja`)
 
-Output of `llmm export`. Role names are substituted from `[role_names]` in the dialog
-file. All text is rendered with `str()` — multi-line content appears as actual multiple
-lines (real newline characters), not as escaped `\n` sequences.
+Jinja2 template that defines the output format of `llmm export`. Rendered by
+`serialize()` using the following context variables:
+
+- `user_role` — display name for the user (from `dialog.user_role`).
+- `assistant_role` — display name for the assistant (from `dialog.assistant_role`).
+- `system_prompt` — system prompt string, or `None` if absent.
+- `task` — user task string, or `None` if absent.
+- `messages` — list of `{role, content}` objects in conversation order; `role` is
+  already substituted with the corresponding display name.
+
+**Example template** (produces the `.dlg.md` output shown below):
+
+    Dialog Setup:
+    {%- if system_prompt %}
+
+    {{ assistant_role }}'s objective:
+    {{ system_prompt }}
+    {%- endif %}
+    {%- if task %}
+
+    {{ user_role }}'s objective:
+    {{ task }}
+    {%- endif %}
+
+    Dialog Messages:
+    {%- for message in messages %}
+
+    {{ message.role }}:
+    {{ message.content }}
+    {%- endfor %}
+
+### Serialized Dialog File (`.dlg.md`)
+
+Output of `llmm export`. Produced by rendering the Jinja template with the dialog data.
 
     Dialog Setup:
 
